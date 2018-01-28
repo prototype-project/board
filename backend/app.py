@@ -13,8 +13,8 @@ from .domain import TaskStatus
 app = configure_app(Flask(__name__, static_folder="../frontend/dist/static", template_folder="../frontend/dist"))
 
 
-@app.inject('boards_repository')
 @app.route('/api/boards', methods=['POST'])
+@app.inject('boards_repository')
 def create_board(boards_repository):
     board = boards_repository.new
     return jsonify(board.json)

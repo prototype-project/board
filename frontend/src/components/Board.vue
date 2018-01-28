@@ -38,7 +38,7 @@
     },
 
     created () {
-      this.$store.dispatch('fetchTasks')
+      this.refresh()
     },
 
     computed: {
@@ -56,6 +56,11 @@
     },
 
     methods: {
+      refresh() {
+        this.$store.dispatch('setBoard', this.$route.params.pk)
+        this.$store.dispatch('fetchTasks')
+      },
+
       movedTodo({taskPk}) {
         this.$store.dispatch('changedTaskStatus',
           {taskPk: taskPk, fromStatus: 'todo', toStatus: 'inProgress'})
@@ -73,6 +78,12 @@
       addTask() {
         this.$store.dispatch('addTask', this.newTaskBody)
         this.newTaskBody = ''
+      }
+    },
+
+    watch:{
+      $route (to, from){
+        this.refresh()
       }
     }
   }

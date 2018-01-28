@@ -12,12 +12,12 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'Index',
+      name: 'index',
       component: BoardCreator
     },
     {
       path: '/boards/:pk',
-      name: 'Board',
+      name: 'board',
       component: Board
     }
   ]

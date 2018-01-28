@@ -13,13 +13,9 @@
   export default {
     methods: {
       createBoard() {
-        this.$http.post('http://127.0.0.1:5000/api/boards').then(response => {
-          response.json().then(val => {
-            this.$router.push('/boards/' + val.pk)
-          })
-        }, response => {
-          alert('error while creating board')
-        });
+        this.$store.dispatch('createBoard').then(() => {
+          this.$router.push({name: 'board', params: {pk: this.$store.getters.boardPk}})
+        })
       }
     }
   }
