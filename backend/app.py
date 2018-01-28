@@ -5,34 +5,33 @@ from flask import Response
 from flask import render_template
 import requests
 
-from .config import get_task_repository
-from .config import get_board_repository
+from .config import configure_app
 from .domain import CreateTaskDto
 from .domain import UpdateTaskDto
 from .domain import TaskStatus
 
-app = Flask(__name__,
-            static_folder="../frontend/dist/static",
-            template_folder="../frontend/dist")
+app = configure_app(Flask(__name__, static_folder="../frontend/dist/static", template_folder="../frontend/dist"))
 
 
+@app.inject('boards_repository')
 @app.route('/api/boards', methods=['POST'])
-def create_board():
-    board_repository = get_board_repository()
-    board = board_repository.new
+def create_board(boards_repository):
+    board = boards_repository.new
     return jsonify(board.json)
 
 
 @app.route('/api/boards/<board_pk>/tasks', methods=['GET'])
-def get_all_tasks(board_pk):
-    task_repo = get_task_repository(board_pk)
+@app.inject('tasks_repository_factory')
+def get_all_tasks(board_pk, tasks_repository_factory):
+    task_repo = tasks_repository_factory(board_pk)
     tasks = task_repo.all
     return jsonify([task.json for task in tasks])
 
 
 @app.route('/api/boards/<board_pk>/tasks/<task_pk>', methods=['PUT'])
-def update_task(board_pk, task_pk):
-    task_repo = get_task_repository(board_pk)
+@app.inject('tasks_repository_factory')
+def update_task(board_pk, task_pk, tasks_repository_factory):
+    task_repo = tasks_repository_factory(board_pk)
     status = request.json['status']
     body = request.json['body']
     task_repo.update(UpdateTaskDto(task_pk, body, TaskStatus.of(status)))
@@ -40,15 +39,17 @@ def update_task(board_pk, task_pk):
 
 
 @app.route('/api/boards/<board_pk>/tasks/<task_pk>', methods=['DELETE'])
-def delete_task(board_pk, task_pk):
-    task_repo = get_task_repository(board_pk)
+@app.inject('tasks_repository_factory')
+def delete_task(board_pk, task_pk, tasks_repository_factory):
+    task_repo = tasks_repository_factory(board_pk)
     task_repo.delete(task_pk)
     return Response(status=200)
 
 
 @app.route('/api/boards/<board_pk>/tasks', methods=['POST'])
-def add_task(board_pk):
-    task_repo = get_task_repository(board_pk)
+@app.inject('tasks_repository_factory')
+def add_task(board_pk, tasks_repository_factory):
+    task_repo = tasks_repository_factory(board_pk)
     created_task = task_repo.add(CreateTaskDto(request.json['body']))
     return jsonify(created_task.json)
 

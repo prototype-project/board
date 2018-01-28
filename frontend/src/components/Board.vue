@@ -3,20 +3,20 @@
     <v-layout row wrap>
       <v-flex xs4>
         <h1>TODO</h1>
-        <task-list :tasks="todo" @taskMoved=""></task-list>
+        <task-list :tasks="todo" @taskMoved="movedTodo"></task-list>
         <form>
-          <v-text-field
+          <v-text-field v-model="newTaskBody"
           ></v-text-field>
-          <v-btn color="success" small dark v-on:click="">Add</v-btn>
+          <v-btn color="success" small dark v-on:click="addTask">Add</v-btn>
         </form>
       </v-flex>
       <v-flex xs4>
         <h1>In Progress</h1>
-        <task-list :tasks="inProgress" @taskMoved=""></task-list>
+        <task-list :tasks="inProgress" @taskMoved="movedInProgress"></task-list>
       </v-flex>
       <v-flex xs4>
         <h1>Done</h1>
-        <task-list :tasks="done" @taskMoved=""></task-list>
+        <task-list :tasks="done" @taskMoved="movedDone"></task-list>
       </v-flex>
     </v-layout>
   </v-container>
@@ -27,6 +27,12 @@
   import _ from 'lodash'
 
   export default {
+    data() {
+      return {
+        newTaskBody: ''
+      }
+    },
+
     components: {
       TaskList
     },
@@ -47,7 +53,27 @@
       done () {
         return this.$store.getters.done
       },
-    }
+    },
 
+    methods: {
+      movedTodo({taskPk}) {
+        this.$store.dispatch('changedTaskStatus',
+          {taskPk: taskPk, fromStatus: 'todo', toStatus: 'inProgress'})
+      },
+
+      movedInProgress({taskPk}) {
+        this.$store.dispatch('changedTaskStatus',
+          {taskPk: taskPk, fromStatus: 'inProgress', toStatus: 'done'})
+      },
+
+      movedDone({taskPk}) {
+        this.$store.dispatch('movedDone', taskPk)
+      },
+
+      addTask() {
+        this.$store.dispatch('addTask', this.newTaskBody)
+        this.newTaskBody = ''
+      }
+    }
   }
 </script>

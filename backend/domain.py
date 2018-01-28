@@ -3,7 +3,7 @@ import enum
 
 class TaskStatus(enum.Enum):
     TODO = 'todo'
-    IN_PROGRESS = 'in_progress'
+    IN_PROGRESS = 'inProgress'
     DONE = 'done'
 
     @classmethod
@@ -95,6 +95,14 @@ class TaskRepository:
             task_as_json['fields']['body'],
             TaskStatus.of(task_as_json['fields']['status'])
         )
+
+
+class TaskRepositoryFactory:
+    def __init__(self, space):
+        self.space = space
+
+    def create(self, board_pk):
+        return TaskRepository(self.space.get_bucket(board_pk))
 
 
 class BoardRepository:

@@ -1,6 +1,6 @@
 <template>
   <v-list>
-    <v-list-tile avatar v-for="task in taskList" v-bind:key="task.pk" @click="">
+    <v-list-tile avatar v-for="task in tasks" v-bind:key="task.pk" @click="">
       <v-list-tile-content>
         <v-list-tile-title v-text="task.body"></v-list-tile-title>
       </v-list-tile-content>
@@ -21,21 +21,7 @@
           taskPk: taskPk
         })
       }
-    },
-
-    computed: {
-      taskList() {
-        let taskList = []
-        for (let taskPk in this.tasks) {
-          if (this.tasks.hasOwnProperty(taskPk)) {
-            taskList.push({
-              body: this.tasks[taskPk].body,
-              pk: taskPk
-            })
-          }
-        }
-        return taskList
-      }
     }
+
   }
 </script>
