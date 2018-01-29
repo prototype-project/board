@@ -8,7 +8,8 @@
         <form>
           <v-text-field v-model="newTaskBody"
           ></v-text-field>
-          <v-btn color="success" small dark v-on:click="addTask">Add</v-btn>
+          <v-btn color="success" small dark v-on:click="addTask" v-if="!addingNewTask">Add</v-btn>
+          <v-progress-circular indeterminate v-bind:width="3" color="green" v-if="addingNewTask"></v-progress-circular>
         </form>
       </v-flex>
       <v-flex xs4>
@@ -20,7 +21,7 @@
         <task-list :tasks="done" @taskMoved="movedDone"></task-list>
       </v-flex>
 
-      <v-bottom-nav absolute :value="true" :active.sync="e1" color="transparent">
+      <v-bottom-nav absolute :value="true" color="transparent">
         <v-btn v-on:click="goHome" flat color="teal" value="recent">
           <span>Home</span>
           <v-icon>home</v-icon>
@@ -61,6 +62,11 @@
       done () {
         return this.$store.getters.done
       },
+
+      addingNewTask() {
+        console.log('blabla')
+        return this.$store.getters.addingNewTask
+      }
     },
 
     methods: {

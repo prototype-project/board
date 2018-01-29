@@ -8,14 +8,16 @@ export default new Vuex.Store({
     inProgress: [],
     done: [],
 
-    boardPk: null
+    boardPk: null,
+    addingNewTask: false
   },
 
   getters: {
     todo: state => state.todo,
     inProgress: state => state.inProgress,
     done: state => state.done,
-    boardPk: state => state.boardPk
+    boardPk: state => state.boardPk,
+    addingNewTask: state => state.addingNewTask
   },
 
   mutations: {
@@ -37,6 +39,10 @@ export default new Vuex.Store({
 
     ADD_TASK (state, task) {
       state.todo.push(task)
+    },
+
+    SET_ADDING_NEW_TASK_FLAG (state, value) {
+      state.addingNewTask = value
     },
 
     SET_BOARD (state, boardPk) {
@@ -87,12 +93,14 @@ export default new Vuex.Store({
     },
 
     addTask ({commit, state}, body) {
+      commit('SET_ADDING_NEW_TASK_FLAG', true)
       let newTask = {status: 'todo', body: body}
       axios
         .post('/api/boards/' + state.boardPk + '/tasks', newTask)
         .then(r => r.data)
         .then(task => {
           commit('ADD_TASK', task)
+          commit('SET_ADDING_NEW_TASK_FLAG', false)
         })
     },
 
