@@ -20,9 +20,9 @@ export default new Vuex.Store({
 
   mutations: {
     SET_TASKS (state, tasks) {
-      state.todo = _.filter(tasks, t => t.status === 'todo')
-      state.inProgress = _.filter(tasks, t => t.status === 'inProgress')
-      state.done = _.filter(tasks, t => t.status === 'done')
+      state.todo = _.forEach(_.filter(tasks, t => t.status === 'todo'), t => t.changingStatus = false)
+      state.inProgress = _.forEach(_.filter(tasks, t => t.status === 'inProgress'), t => t.changingStatus = false)
+      state.done = _.forEach(_.filter(tasks, t => t.status === 'done'), t => t.changingStatus = false)
     },
 
     CHANGE_STATUS (state, {taskPk, fromStatus, toStatus}) {
@@ -41,6 +41,13 @@ export default new Vuex.Store({
 
     SET_BOARD (state, boardPk) {
       state.boardPk = boardPk
+    },
+
+    MARK_AS_CHANGING_STATUS (state, {taskPk, fromStatus}) {
+      let toMark = _.find(state[fromStatus], t => t.pk === taskPk)
+      toMark.changingStatus = true
+      state[fromStatus] = _.filter(state[fromStatus], t => t.pk !== taskPk)
+      state[fromStatus].push(toMark)
     }
   },
 
@@ -55,9 +62,7 @@ export default new Vuex.Store({
     },
 
     changedTaskStatus ({commit, state}, {taskPk, fromStatus, toStatus}) {
-      console.log(taskPk)
-      console.log(fromStatus)
-      console.log(toStatus)
+      commit('MARK_AS_CHANGING_STATUS', {taskPk, fromStatus})
       let task = _.find(state[fromStatus], t => t.pk === taskPk)
       console.log(task)
       let updatedTask = {
@@ -73,6 +78,7 @@ export default new Vuex.Store({
     },
 
     movedDone ({commit, state}, taskPk) {
+      commit('MARK_AS_CHANGING_STATUS', {taskPk: taskPk, fromStatus: 'done'})
       axios
         .delete('/api/boards/' + state.boardPk + '/tasks/' + taskPk)
         .then(() => {

@@ -1,5 +1,6 @@
 <template>
   <v-container grid-list-md text-xs-center>
+
     <v-layout row wrap>
       <v-flex xs4>
         <h1>TODO</h1>
@@ -18,6 +19,13 @@
         <h1>Done</h1>
         <task-list :tasks="done" @taskMoved="movedDone"></task-list>
       </v-flex>
+
+      <v-bottom-nav absolute :value="true" :active.sync="e1" color="transparent">
+        <v-btn v-on:click="goHome" flat color="teal" value="recent">
+          <span>Home</span>
+          <v-icon>home</v-icon>
+        </v-btn>
+      </v-bottom-nav>
     </v-layout>
   </v-container>
 </template>
@@ -78,6 +86,10 @@
       addTask() {
         this.$store.dispatch('addTask', this.newTaskBody)
         this.newTaskBody = ''
+      },
+
+      goHome() {
+        this.$router.push({name: 'index'})
       }
     },
 
