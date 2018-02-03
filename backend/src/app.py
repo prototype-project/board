@@ -7,11 +7,11 @@ import requests
 
 from .domain import CreateTaskDto
 from .domain import UpdateTaskDto
-from .domain import TaskStatus
+from .domain import BoardNotFound
 from .config import configure_boards_repository
 from .config import configure_tasks_repository
 
-app = Flask(__name__, static_folder="../frontend/dist/static", template_folder="../frontend/dist")
+app = Flask(__name__, static_folder="../../frontend/dist/static", template_folder="../../frontend/dist")
 
 
 @app.route('/api/boards', methods=['POST'])
@@ -22,17 +22,25 @@ def create_board():
 
 @app.route('/api/boards/<board_pk>/tasks', methods=['GET'])
 def get_all_tasks(board_pk):
-    task_repo = configure_tasks_repository(app)(board_pk)
+    try:
+        task_repo = configure_tasks_repository(app)(board_pk)
+    except BoardNotFound:
+        return Response(status=404)
+
     tasks = task_repo.all
     return jsonify([task.json for task in tasks])
 
 
 @app.route('/api/boards/<board_pk>/tasks/<task_pk>', methods=['PUT'])
 def update_task(board_pk, task_pk):
-    task_repo = configure_tasks_repository(app)(board_pk)
+    try:
+        task_repo = configure_tasks_repository(app)(board_pk)
+    except BoardNotFound:
+        return Response(status=404)
+
     status = request.json['status']
     body = request.json['body']
-    task_repo.update(UpdateTaskDto(task_pk, body, TaskStatus.of(status)))
+    task_repo.update(UpdateTaskDto(task_pk, body, status))
     return Response(status=200)
 
 
@@ -46,7 +54,9 @@ def delete_task(board_pk, task_pk):
 @app.route('/api/boards/<board_pk>/tasks', methods=['POST'])
 def add_task(board_pk):
     task_repo = configure_tasks_repository(app)(board_pk)
-    created_task = task_repo.add(CreateTaskDto(request.json['body']))
+    print(request.data)
+    body = request.json['body']
+    created_task = task_repo.add(CreateTaskDto(body))
     return jsonify(created_task.json)
 
 

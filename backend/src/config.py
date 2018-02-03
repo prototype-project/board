@@ -8,7 +8,11 @@ BOARDS_BUCKET_NAME = 'boards'
 
 def configure_space(app):
     if not hasattr(app, 'space'):
-        app.space = easydb_client.get_space(SPACE_NAME)
+        if app.testing or app.debug:
+            easydb_client.inmemory.create_space(SPACE_NAME)
+            app.space = easydb_client.inmemory.get_space(SPACE_NAME)
+        else:
+            app.space = easydb_client.get_space(SPACE_NAME)
     return app.space
 
 
@@ -21,6 +25,7 @@ def configure_boards_repository(app):
 
 def configure_tasks_repository(app):
     configure_space(app)
+
     if not hasattr(app, 'tasks_repository_factory'):
-        app.tasks_repository_factory = TaskRepositoryFactory(app.space).create
+        app.tasks_repository_factory = TaskRepositoryFactory(app.space, configure_boards_repository(app)).create
     return app.tasks_repository_factory

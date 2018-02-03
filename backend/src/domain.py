@@ -1,4 +1,5 @@
 import enum
+import easydb_client
 
 
 class TaskStatus(enum.Enum):
@@ -50,7 +51,7 @@ class UpdateTaskDto:
     def __init__(self, pk, body, status):
         self.pk = pk
         self.body = body
-        self.status = status
+        self.status = TaskStatus.of(status)
 
     @property
     def json(self):
@@ -97,11 +98,18 @@ class TaskRepository:
         )
 
 
+class BoardNotFound(ValueError):
+    pass
+
+
 class TaskRepositoryFactory:
-    def __init__(self, space):
+    def __init__(self, space, boards_repository):
         self.space = space
+        self.boards_repository = boards_repository
 
     def create(self, board_pk):
+        if not self.boards_repository.exists(board_pk):
+            raise BoardNotFound()
         return TaskRepository(self.space.get_bucket(board_pk))
 
 
@@ -113,3 +121,10 @@ class BoardRepository:
     def new(self):
         board_as_json = self._boards.add({})
         return Board(pk=board_as_json['id'])
+
+    def exists(self, pk):
+        try:
+            self._boards.get(pk)
+            return True
+        except easydb_client.ElementNotFound:
+            return False
