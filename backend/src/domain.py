@@ -72,6 +72,10 @@ class Board:
         }
 
 
+class TaskNotFound(ValueError):
+    pass
+
+
 class TaskRepository:
     def __init__(self, task_bucket):
         self._tasks = task_bucket
@@ -85,10 +89,16 @@ class TaskRepository:
         return self._to_entity(created_task_as_json)
 
     def delete(self, task_pk):
-        self._tasks.remove(task_pk)
+        try:
+            self._tasks.remove(task_pk)
+        except easydb_client.ElementNotFound:
+            raise TaskNotFound()
 
     def update(self, change_status_task_dto):
-        self._tasks.update(change_status_task_dto.pk, change_status_task_dto.json)
+        try:
+            self._tasks.update(change_status_task_dto.pk, change_status_task_dto.json)
+        except easydb_client.ElementNotFound:
+            raise TaskNotFound
 
     def _to_entity(self, task_as_json):
         return Task(

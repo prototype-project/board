@@ -3,11 +3,13 @@ from flask import Flask
 from flask import request
 from flask import Response
 from flask import render_template
+from werkzeug.exceptions import BadRequest
 import requests
 
 from .domain import CreateTaskDto
 from .domain import UpdateTaskDto
 from .domain import BoardNotFound
+from .domain import TaskNotFound
 from .config import configure_boards_repository
 from .config import configure_tasks_repository
 
@@ -35,27 +37,38 @@ def get_all_tasks(board_pk):
 def update_task(board_pk, task_pk):
     try:
         task_repo = configure_tasks_repository(app)(board_pk)
-    except BoardNotFound:
+        status = request.json['status']
+        body = request.json['body']
+        task_repo.update(UpdateTaskDto(task_pk, body, status))
+    except (BoardNotFound, TaskNotFound):
         return Response(status=404)
+    except (BadRequest, ValueError):
+        return Response(status=400)
 
-    status = request.json['status']
-    body = request.json['body']
-    task_repo.update(UpdateTaskDto(task_pk, body, status))
     return Response(status=200)
 
 
 @app.route('/api/boards/<board_pk>/tasks/<task_pk>', methods=['DELETE'])
 def delete_task(board_pk, task_pk):
-    task_repo = configure_tasks_repository(app)(board_pk)
-    task_repo.delete(task_pk)
+    try:
+        task_repo = configure_tasks_repository(app)(board_pk)
+        task_repo.delete(task_pk)
+    except (BoardNotFound, TaskNotFound):
+        return Response(status=404)
+
     return Response(status=200)
 
 
 @app.route('/api/boards/<board_pk>/tasks', methods=['POST'])
 def add_task(board_pk):
-    task_repo = configure_tasks_repository(app)(board_pk)
-    print(request.data)
-    body = request.json['body']
+    try:
+        task_repo = configure_tasks_repository(app)(board_pk)
+        body = request.json['body']
+    except BoardNotFound:
+        return Response(status=404)
+    except (KeyError, BadRequest):
+        return Response(status=400)
+
     created_task = task_repo.add(CreateTaskDto(body))
     return jsonify(created_task.json)
 
