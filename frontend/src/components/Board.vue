@@ -20,13 +20,6 @@
         <h1>Done</h1>
         <task-list :tasks="done" @taskMoved="movedDone"></task-list>
       </v-flex>
-
-      <v-bottom-nav absolute :value="true" color="transparent">
-        <v-btn v-on:click="goHome" flat color="teal" value="recent">
-          <span>Home</span>
-          <v-icon>home</v-icon>
-        </v-btn>
-      </v-bottom-nav>
     </v-layout>
   </v-container>
 </template>
@@ -72,7 +65,10 @@
     methods: {
       refresh() {
         this.$store.dispatch('setBoard', this.$route.params.pk)
-        this.$store.dispatch('fetchTasks')
+        this.$store.dispatch('fetchTasks').catch(error => {
+          console.log(error)
+          this.$router.push('/not-found')
+        })
       },
 
       movedTodo({taskPk}) {

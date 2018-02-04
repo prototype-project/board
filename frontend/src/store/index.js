@@ -59,7 +59,7 @@ export default new Vuex.Store({
 
   actions: {
     fetchTasks ({ commit, state }) {
-      axios
+      return axios
         .get('/api/boards/' + state.boardPk + '/tasks')
         .then(r => r.data)
         .then(tasks => {
