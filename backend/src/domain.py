@@ -1,5 +1,7 @@
 import enum
-import easydb_client
+import uuid
+import json
+import requests as req
 
 
 class TaskStatus(enum.Enum):
@@ -39,9 +41,9 @@ class CreateTaskDto:
         self.body = body
         self.status = TaskStatus.TODO
 
-    @property
-    def json(self):
+    def json(self, pk):
         return {
+            'pk': pk,
             'body': self.body,
             'status': self.status.value
         }
@@ -56,6 +58,7 @@ class UpdateTaskDto:
     @property
     def json(self):
         return {
+            'pk': self.pk,
             'body': self.body,
             'status': self.status.value
         }
@@ -77,34 +80,42 @@ class TaskNotFound(ValueError):
 
 
 class TaskRepository:
-    def __init__(self, task_bucket):
-        self._tasks = task_bucket
+    def __init__(self, router_address, board_pk):
+        self.board_pk = board_pk
+        self.router_address = router_address
 
     @property
     def all(self):
-        return map(self._to_entity, self._tasks.all())
+        raw_tasks = json.loads(req.get(f'{self.router_address}/router/{self.board_pk}').text)
+        return list(map(self._to_entity, raw_tasks))
 
     def add(self, create_task_dto):
-        created_task_as_json = self._tasks.add(create_task_dto.json)
-        return self._to_entity(created_task_as_json)
+        raw_tasks = json.loads(req.get(f'{self.router_address}/router/{self.board_pk}').text)
+        pk = str(uuid.uuid4())
+        raw_tasks.append(create_task_dto.json(pk))
+        req.put(f'{self.router_address}/router/{self.board_pk}', json.dumps(raw_tasks))
+        return self._to_entity(create_task_dto.json(pk))
 
     def delete(self, task_pk):
-        try:
-            self._tasks.remove(task_pk)
-        except easydb_client.ElementNotFound:
-            raise TaskNotFound()
+        raw_tasks = json.loads(req.get(f'{self.router_address}/router/{self.board_pk}').text)
+        req.put(
+            f'{self.router_address}/router/{self.board_pk}',
+            json.dumps([t for t in raw_tasks if t['pk'] != task_pk])
+        )
 
     def update(self, change_status_task_dto):
-        try:
-            self._tasks.update(change_status_task_dto.pk, change_status_task_dto.json)
-        except easydb_client.ElementNotFound:
-            raise TaskNotFound
+        self.delete(change_status_task_dto.pk)
+
+        raw_tasks = json.loads(req.get(f'{self.router_address}/router/{self.board_pk}').text)
+        raw_tasks.append(change_status_task_dto.json)
+        req.put(f'{self.router_address}/router/{self.board_pk}', json.dumps(raw_tasks))
+        return self._to_entity(change_status_task_dto.json)
 
     def _to_entity(self, task_as_json):
         return Task(
-            task_as_json['id'],
-            task_as_json['fields']['body'],
-            TaskStatus.of(task_as_json['fields']['status'])
+            task_as_json['pk'],
+            task_as_json['body'],
+            TaskStatus.of(task_as_json['status'])
         )
 
 
@@ -113,28 +124,30 @@ class BoardNotFound(ValueError):
 
 
 class TaskRepositoryFactory:
-    def __init__(self, space, boards_repository):
-        self.space = space
+    def __init__(self, router_address, boards_repository):
+        self.router_address = router_address
         self.boards_repository = boards_repository
 
     def create(self, board_pk):
         if not self.boards_repository.exists(board_pk):
             raise BoardNotFound()
-        return TaskRepository(self.space.get_bucket(board_pk))
+        return TaskRepository(self.router_address, board_pk)
 
 
 class BoardRepository:
-    def __init__(self, board_bucket):
-        self._boards = board_bucket
+    def __init__(self, router_addresses):
+        self.router_addresses = router_addresses
+        self.BOARDS_KEY = 'boards'
 
     @property
     def new(self):
-        board_as_json = self._boards.add({})
-        return Board(pk=board_as_json['id'])
+        boards = json.loads(req.get(f'{self.router_addresses}/router/{self.BOARDS_KEY}').text)
+        pk = str(uuid.uuid4())
+        boards.append(pk)
+        req.put(f'{self.router_addresses}/router/{self.BOARDS_KEY}', json.dumps(boards))
+        req.put(f'{self.router_addresses}/router/{pk}', json.dumps([]))
+        return Board(pk)
 
     def exists(self, pk):
-        try:
-            self._boards.get(pk)
-            return True
-        except easydb_client.ElementNotFound:
-            return False
+        resp = req.get(f'{self.router_addresses}/router/{self.BOARDS_KEY}')
+        return resp.status_code == 200 and any(b == pk for b in json.loads(resp.text))

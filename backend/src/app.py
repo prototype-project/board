@@ -4,7 +4,6 @@ from flask import request
 from flask import Response
 from flask import render_template
 from werkzeug.exceptions import BadRequest
-import requests
 
 from .domain import CreateTaskDto
 from .domain import UpdateTaskDto
@@ -19,6 +18,7 @@ app = Flask(__name__, static_folder="../../frontend/dist/static", template_folde
 @app.route('/api/boards', methods=['POST'])
 def create_board():
     board = configure_boards_repository(app).new
+    print('happy')
     return jsonify(board.json)
 
 
@@ -76,6 +76,4 @@ def add_task(board_pk):
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
-    if app.debug:
-        return requests.get('http://localhost:8080/{}'.format(path)).text
     return render_template("index.html")
